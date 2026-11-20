@@ -7,7 +7,7 @@ description: Scope and preflight uncommitted changes, review and fix within a bo
 
 The implementation agent owns scope, fixes, verification, the ledger and outcome. Reviewers stay read-only and never launch agents or this loop. Only **approved** permits an otherwise-authorized commit or push.
 
-Invoke `/review-fix-loop` in Claude Code, optionally `serial` or `parallel`. These are agent preferences, not script flags. `serial` disables advisory and fix workers; an independent reviewer is still required. `/path/to/review-fix-loop` below means this skill's installed base directory.
+Invoke `/review-fix-loop` in Claude Code or use this skill in Codex CLI, optionally `serial` or `parallel`. These are agent preferences, not script flags. `serial` disables advisory and fix workers; an independent reviewer is still required. `/path/to/review-fix-loop` below means this skill's installed base directory.
 
 ## Budget and grades
 
@@ -18,7 +18,12 @@ Invoke `/review-fix-loop` in Claude Code, optionally `serial` or `parallel`. The
 
 ## Reviewer route
 
-Use a **new, never-resumed `reviewer` agent for every round**, Opus 5.5 at xhigh, through the Agent tool. Follow [native-reviewer](references/native-reviewer.md) for briefs, saved evidence and validation. Never substitute your own review or switch reviewers to evade findings. Missing agents or unavailable required settings are execution blockers.
+Use the active setup selected in the global instructions (`~/.claude/CLAUDE.md`, or `~/.codex/AGENTS.md` for a Codex main session):
+
+- **Codex + Claude** and **Codex only:** a fresh `gpt-6.1-sol` process at high through `codex exec review`. Follow [codex-reviewer](references/codex-reviewer.md).
+- **Claude only:** a new, never-resumed `reviewer` agent, `claude-opus-5-5` at xhigh, through the Agent tool. Follow [native-reviewer](references/native-reviewer.md).
+
+In Codex + Claude, a Codex launch, sign-in, plan or quota failure switches the session to Claude only. Rerun the same round with a fresh native `reviewer`, the same scope/context and fresh fingerprints. For a transient HTTP 429 / "Rate limit exceeded" or capacity/overload error, wait a few minutes and retry once; switch only if that also fails. Codex only reports the blocker instead. Findings, stale trees and other execution errors keep this loop's normal failure handling. Never substitute your own review or switch reviewers to evade findings. Missing agents or unavailable required settings are execution blockers.
 
 ## Scope and preflight
 
@@ -70,11 +75,16 @@ The fingerprint covers repo identity, HEAD (or no commits), the index, changed t
 
 ## Tiebreak
 
-After two evidence-based replies fail to settle an item, consult two fresh read-only `advisor` agents in parallel: the default Fable 5.2 at xhigh and a second `advisor` with Agent `model: "opus"` (Opus 5.5 at xhigh). Give both the neutral round-1 brief, finding, both sides' arguments, evidence and relevant paths. Ask which side is right and what grade the item deserves. Weigh their evidence, not votes. If one cannot run, disclose that and use the other.
+After two evidence-based replies fail to settle an item, use the active setup:
+
+- **Codex + Claude** and **Codex only:** consult one fresh `gpt-6-astra` at xhigh once through read-only `codex exec`. Include the advisor preamble (the body of `agents/advisor.md`, without frontmatter); follow [delegate-work](../delegate-work/SKILL.md) for the launch route.
+- **Claude only:** consult two fresh read-only `advisor` agents in parallel: the default Fable 5.2 at xhigh and a second `advisor` with Agent `model: "opus"` (Opus 5.5 at xhigh). If one cannot run, disclose that and use the other.
+
+Give each the neutral round-1 brief, finding, both sides' arguments, evidence and relevant paths. Ask which side is right and what grade the item deserves. Weigh their evidence, not votes.
 
 - **Clear ruling sides with the reviewer:** use the ruling's grade; fix a blocker/should and review again within budget.
 - **Clear ruling sides with you:** mark `declined: tiebreak, <one line>` and list the downgraded finding in the report.
-- **Unclear ruling or neither advisor can run:** needs user. Present the evidence; do not manufacture consensus.
+- **Unclear ruling or no required advisor can run:** needs user. Present the evidence; do not manufacture consensus.
 
 A tiebreak is not a round and cannot approve the loop. Its ruling stands unless new evidence appears.
 
@@ -88,6 +98,6 @@ Read the whole final message. Missing output, incomplete coverage, ambiguous tex
 
 Report rounds, model, diff size before/after including untracked files, fixes, declines with reasons, validation and outcome. List downgraded or declined reviewer blocker/should findings first, with both grades and evidence. Give short milestone updates while agents run; use completion notifications, not polling.
 
-When filing or updating a pull/merge request, include actual values in this line:
+When filing or updating a pull/merge request, include actual values in this line. List every reviewer model used if the setup switched:
 
 `Reviewed with review-fix-loop: <N> rounds with <model>. Verdict: <approved | not approved — open: S<ids>>[; downgraded: S<ids>]`

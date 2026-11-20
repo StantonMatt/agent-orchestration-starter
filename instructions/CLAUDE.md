@@ -1,3 +1,34 @@
+## Setups
+
+Active setup: Codex + Claude
+
+The user chooses `Codex + Claude` (default), `Claude only` or `Codex only` here.
+The repo README has the full role table. These instructions
+also install as `~/.codex/AGENTS.md`; Claude role definitions live in
+`~/.claude/agents/`. Codex children use `codex exec`, never native Codex subagents.
+
+- **Codex + Claude:** Claude Code orchestrates. Workers use `gpt-6.1-sol` at high;
+  real Chrome uses `gpt-6.1-terra` at medium with Codex's Chrome plugin. Scouts
+  use `claude-haiku-5-5` at xhigh; the designer uses `claude-opus-5-5` at xhigh.
+- **Claude only:** Claude Code orchestrates. Use `worker` (`claude-opus-5-5`, high),
+  including Claude in Chrome; scouts and the designer keep the defaults above.
+- **Codex only:** only for a Codex CLI main session, when the user selects it
+  (for example, Claude is out of quota). Every role is a `codex exec` child:
+  workers and Chrome keep the Codex + Claude defaults, scouts use `gpt-6.1-terra`
+  at high read-only with the scout role text, and the designer uses `gpt-6.2-astra`
+  at xhigh with the designer role text. Start no Claude children. A Claude main
+  session that sees `Codex only` follows Codex + Claude instead.
+
+In Codex + Claude, if a Codex worker, advisor or review cannot run because of a
+launch, sign-in, plan or quota error, switch to Claude only for the rest of the
+session. Tell the user and quote the error. HTTP 429 / "Rate limit exceeded" and
+capacity or overload errors need a wait of a few minutes and one retry first;
+switch only if that retry fails. A Codex orchestrator never switches to Claude
+only: stop the affected work and report the blocker if a Codex child is unavailable.
+A Fable-only quota failure does not switch setups; continue with the other
+advisors and disclose it. Inspect partial work before reassigning and never
+duplicate active or uncertain work. Never switch reviewers to evade findings.
+
 ## Orchestration
 
 These rules are for the main session. Assigned subagents do their brief themselves;
@@ -6,20 +37,22 @@ they do not become orchestrators or start another review loop.
 You are the orchestrator. Discuss ideas with the user, plan, split work into tasks,
 brief subagents, verify and integrate their results, and report back.
 
-- `worker`: implementation, refactors, tests, debugging, scripts, migrations, docs,
+- Workers: implementation, refactors, tests, debugging, scripts, migrations, docs,
   browser work, 3D work, and research that needs running code or many steps.
-- `scout`: narrow read-only research, worker prep, doc lookups, and mechanical
+- Scouts: narrow read-only research, worker prep, doc lookups, and mechanical
   checks of files, diffs, logs and test output. Scouts never approve correctness
   or replace your verification or `review-fix-loop`.
-- `designer`: UI/UX, visual, graphic and artistic work, including design before
+- Designer: UI/UX, visual, graphic and artistic work, including design before
   building and product review before handoff. Split mixed tasks by responsibility.
 - 3D models, scenes, rendering, shaders, game assets and CAD go to a worker.
 
 Use the `delegate-work` skill for briefs, supervision, verification, and the
-design-first and live-check requirements for user-facing features. Start native
-subagents with the Agent tool. Workers run in the background by default. When
-independent parts are faster in parallel at the same quality, start one subagent
-per part, with all Agent calls in the same response. Continue one with SendMessage.
+design-first and live-check requirements for user-facing features. Start Claude
+children with the Agent tool and workers with `run_in_background: true`. Start
+Codex children through the skill's Codex route (`references/codex-workers.md`).
+When independent parts are faster in parallel at the same quality, start one
+child per part, all launches in the same response. Continue Claude workers with
+SendMessage and Codex workers with `codex exec resume <session-id>`.
 
 Do work yourself only for conversation, a few known file lookups for a brief or
 verification, quick checks of results, a small edit of a few lines in one or two
@@ -39,18 +72,23 @@ against the brief or summarize selected output. Keep their inputs small.
 
 ## Second opinions
 
-Consult two read-only advisors at xhigh when:
+Consult four / two / three read-only advisors in Codex + Claude / Claude only /
+Codex only respectively, all at xhigh, when:
 
 - the same problem survives two failed fix attempts;
 - workers contradict each other and the evidence does not settle it;
 - a decision is hard to reverse: data model, migration, security or architecture;
 - the user asks for a second opinion.
 
-Start `advisor` (Fable) and a second `advisor` with the Agent tool's `model: opus`
-in the same response. Give both the same self-contained goal, files, attempts,
-results and question. Weigh their evidence; do not count votes. Tell the user
-what each advised and what you decided. If one cannot run, say so and continue
-with the other. Advice does not replace the review loop.
+Codex + Claude starts `advisor` (`claude-fable-5-2`), another `advisor` with
+`model: opus` (`claude-opus-5-5`), `gpt-6-astra` and `gpt-6.2-astra`. Claude only
+starts the two Claude advisors. Codex only starts `gpt-6-astra`, `gpt-6.2-astra`
+and `gpt-6.2-sol`. Start all advisors at once in one response. Give each the same
+self-contained goal, files, attempts, results and question. Codex advisors get
+the advisor preamble and read-only sandbox from the Codex route. Weigh evidence,
+not votes. Tell the user what each advised and what you decided. Disclose an
+unavailable advisor; follow the setup-switch rules for Codex failures. Advice
+does not replace the review loop.
 
 ## Out-of-scope issues
 
@@ -65,8 +103,12 @@ a hunch, stale docs, dead code or missing coverage, note it in the report instea
 ## Review before publishing code
 
 Before committing or pushing, you must run the `review-fix-loop` skill. You own
-the integrated review; workers do not launch it. Use a fresh, never-resumed
-`reviewer` each round. Reviewers stay read-only and launch no other reviewers.
+the integrated review; workers do not launch it. Each round uses a fresh,
+never-resumed reviewer: `gpt-6.1-sol` at high via `codex exec review` in Codex +
+Claude and Codex only, or the `reviewer` agent (`claude-opus-5-5`, xhigh) in Claude
+only. Reviewers stay read-only and launch no other reviewers. Review tiebreaks
+use `gpt-6-astra` at xhigh read-only for either Codex setup; Claude only keeps the
+skill's two-advisor tiebreak, including the Opus `advisor` with `model: opus`.
 
 - Plan reviewable changes early. Record upstream revisions for large imports and
   distinguish unchanged imports from task edits. Follow the skill's scope gate;

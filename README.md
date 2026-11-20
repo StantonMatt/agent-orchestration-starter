@@ -1,20 +1,27 @@
 # Agent orchestration starter
 
-A starter trimmed from a real working setup for Claude Code with a Claude
-subscription. The main session plans and delegates; role-specific subagents do
+A starter trimmed from a real working setup for Claude Code and Codex CLI.
+The main session plans and delegates; role-specific children do
 scoped work, and a fresh reviewer checks each review round before commits.
 Read it and adapt it rather than installing it blind.
 
 ## Roles
 
-| Role | Agent | Default model / effort | What it does |
-| --- | --- | --- | --- |
-| Orchestrator | Main session | Your choice | Plans, briefs, verifies, integrates and owns review |
-| Research | `scout` | `claude-haiku-5-5` / xhigh | Read-only prep, lookups and mechanical checks |
-| Implementation | `worker` | `claude-opus-5-5` / high | Code, tests, docs, browser and 3D work |
-| Design | `designer` | `claude-opus-5-5` / xhigh | Screens, flows, visual work and product checks |
-| Advice | `advisor` | `claude-fable-5-2` / xhigh | Independent read-only advice; a second instance uses `model: opus` |
-| Review | `reviewer` | `claude-opus-5-5` / xhigh | Fresh read-only review each round |
+| Role | Codex + Claude (default) | Claude only | Codex only |
+|---|---|---|---|
+| Orchestrator (main session) | Claude Code (any model) | Claude Code | Codex CLI |
+| Workers (implementation, refactors, tests, debugging, scripts, docs, browser, 3D) | `gpt-6.1-sol` at high, run as `codex exec` | `worker` agent, `claude-opus-5-5` at high | `gpt-6.1-sol` at high, `codex exec` |
+| Browser work in the user's real Chrome | `gpt-6.1-terra` at medium with Codex's Chrome plugin | `worker` agent with Claude in Chrome | `gpt-6.1-terra` at medium with Codex's Chrome plugin |
+| Scouts (read-only research) | `scout` agent, `claude-haiku-5-5` at xhigh | same | `gpt-6.1-terra` at high, read-only `codex exec`, with the `scout` role text |
+| Designer | `designer` agent, `claude-opus-5-5` at xhigh | same | `gpt-6.2-astra` at xhigh, `codex exec`, with the `designer` role text |
+| Advisors (4 / 2 / 3, all xhigh, all started at once) | `advisor` (`claude-fable-5-2`), `advisor` with `model: opus`, `gpt-6-astra`, `gpt-6.2-astra` | Fable and Opus `advisor` agents | `gpt-6-astra`, `gpt-6.2-astra`, `gpt-6.2-sol` |
+| Authoritative reviewer (fresh each round) | Codex `gpt-6.1-sol` at high, `codex exec review`, read-only | `reviewer` agent, `claude-opus-5-5` at xhigh | Codex `gpt-6.1-sol` at high, `codex exec review` |
+| Review tiebreak | `gpt-6-astra` at xhigh, read-only | Fable and Opus `advisor` agents | `gpt-6-astra` at xhigh, read-only |
+
+Set `Active setup: Codex + Claude` near the top of [instructions/CLAUDE.md](instructions/CLAUDE.md),
+or choose `Claude only` or `Codex only`. Codex only needs a Codex CLI main session.
+Codex + Claude needs both a Claude subscription and authenticated Codex CLI with
+access to the listed models. Model names and availability change; use models your plans offer.
 
 ## How a task flows
 
@@ -26,15 +33,16 @@ Read it and adapt it rather than installing it blind.
 5. Commit only approved changes. Push when authorized and ready; let CI run its
    full suites, then merge only when checks are green.
 
-Subagents use Claude Code's Agent tool and do not start more subagents. Workers
-run in the background by default. The main session supervises and owns the result.
+Claude children use Claude Code's Agent tool; Codex children use `codex exec`.
+Children do not start more children. Workers run in parallel when independent.
+The main session supervises and owns the result.
 
 ## Files
 
 - [instructions/CLAUDE.md](instructions/CLAUDE.md): global orchestration and working rules.
 - [agents/](agents/): the five role definitions and their model defaults.
-- [skills/delegate-work/](skills/delegate-work/SKILL.md): briefs, parallel work, verification and optional CLI workers.
-- [skills/review-fix-loop/](skills/review-fix-loop/SKILL.md): bounded review loop, native reviewer instructions and tree fingerprints.
+- [skills/delegate-work/](skills/delegate-work/SKILL.md): briefs, parallel work, verification and Codex children.
+- [skills/review-fix-loop/](skills/review-fix-loop/SKILL.md): bounded review loop, reviewer routes and tree fingerprints.
 - [skills/full-send/](skills/full-send/SKILL.md): carry authorized work through publication and checks.
 - [skills/full-stop/](skills/full-stop/SKILL.md): prepare and verify a pull request, then leave it open and unmerged.
 - [skills/babysit-pr/](skills/babysit-pr/SKILL.md): watch a pull request and handle actionable failures.
@@ -46,16 +54,18 @@ run in the background by default. The main session supervises and owns the resul
 
 ## Install
 
-Requires Claude Code, Bash and Python 3. Linux and macOS are supported; the
+Requires Bash and Python 3, plus Claude Code for Claude only, Codex CLI for
+Codex only, or both for Codex + Claude. Linux and macOS are supported; the
 installer uses Bash 3.2-compatible syntax. Choose models available on your plan
 before use. Keep this checkout in place: installed files link back to it.
 
 ```sh
 ./install.sh --dry-run
-./install.sh
+./install.sh --codex
 ```
 
-This links skills into `~/.claude/skills/`, agent definitions into
+Codex + Claude and Codex only use `./install.sh --codex`; Claude only can use
+`./install.sh`. The installer always links skills into `~/.claude/skills/`, agent definitions into
 `~/.claude/agents/`, and instructions into `~/.claude/CLAUDE.md`. Existing regular
 files or directories are renamed to `<path>.bak-<UTC stamp>` (with a counter on
 collision). Existing destination symlinks are replaced; their targets are untouched.
@@ -82,23 +92,25 @@ Tests use a fixture repo and a throwaway home directory, not your configuration.
 
 Give your agent this prompt:
 
-> Read this repo, ask me which tools, models and subscriptions I have, then write
-> a minimal version for me, starting with the role split and the review loop.
+> Read this repo, ask me which tools, models and subscriptions I have, choose
+> Codex + Claude, Claude only or Codex only, then adapt the role split and review loop.
 
 Start small: one worker, a read-only scout, and a fresh reviewer before commits.
 Add rules when real problems show up. Keep project-specific requirements in each
 project, and remove integrations you do not use.
 
-Change `model` and `effort` in [agents/](agents/) to fit your plan and the model IDs
-your Claude Code version supports. Update the role table and instruction defaults
-to match. The Opus second advisor uses the Agent tool's `model: opus` override.
+Change `model` and `effort` in [agents/](agents/) for Claude children and the
+[Codex role defaults](skills/delegate-work/references/codex-workers.md) for Codex children
+to fit your plans. Update the role table and instruction defaults to match.
+The Opus second advisor uses the Agent tool's `model: opus` override.
 Model availability and supported effort settings can change; confirm them locally.
 Use narrow briefs and small research inputs to keep subscription usage predictable.
 
-Codex CLI is optional. See [Codex workers](skills/delegate-work/references/codex-workers.md)
-for the separate worker route. Installing `--codex` makes skills discoverable;
-it does not give Codex Claude Code's Agent or SendMessage tools. The default
-orchestrator and authoritative reviewer remain in Claude Code.
+See [Codex children](skills/delegate-work/references/codex-workers.md) for workers,
+scouts, designers and advisors, and [Codex review](skills/review-fix-loop/references/codex-reviewer.md)
+for authoritative reviews. Installing `--codex` makes skills discoverable;
+it does not give Codex Claude Code's Agent or SendMessage tools. In Codex only,
+every role is a `codex exec` child; no Claude children run.
 
 If installed, use `~/.local/bin/heavy <command> ...` for full suites, builds and
 whole-project type checks. Focused tests and development servers run directly.

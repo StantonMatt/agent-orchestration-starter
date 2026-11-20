@@ -9,13 +9,13 @@ You are the orchestrator: plan, brief, supervise, verify and integrate. Workers 
 
 ## Start workers
 
-Use the Agent tool with `subagent_type: "worker"` and `run_in_background: true`. The installed worker uses Opus 5.5 at high effort. Retain the agent handle and use completion notifications. For independent parts, put all Agent calls in one message. Do useful independent work or yield while they run; do not sleep, poll in a loop or launch monitoring agents.
+Read the active setup in the global instructions. In **Codex + Claude** and **Codex only**, use `gpt-6.1-sol` at high through the [Codex route](references/codex-workers.md). In **Claude only**, use the Agent tool with `subagent_type: "worker"` and `run_in_background: true`; the worker uses `claude-opus-5-5` at high. Retain handles and use completion notifications where available. For independent parts, put all launches in one response. Do useful independent work or yield while they run; do not poll in a loop or launch monitoring agents.
 
-Never detach worker commands yourself with `&`, `nohup`, `setsid` or `disown`. The host must track the worker and deliver completion. Users who also have Codex CLI may use the [optional Codex route](references/codex-workers.md).
+In Claude Code, never detach commands yourself: launch each Codex command with Bash `run_in_background: true`. A Codex CLI main session uses the bounded parallel shell recipe in the Codex route when no tracked background tool is available. Real Chrome work uses `gpt-6.1-terra` at medium with Codex's Chrome plugin in Codex + Claude and Codex only; Claude only uses a `worker` with Claude in Chrome. Keep the browser safety rules below.
 
 ## Briefs
 
-Use read-only `scout` agents for narrow preparation first, in parallel where it splits. Include their file/line pointers, patterns, related tests and relevant docs in the worker brief.
+Use read-only scouts for narrow preparation first, in parallel where it splits: `scout` (`claude-haiku-5-5`, xhigh) in Codex + Claude and Claude only; `gpt-6.1-terra` at high with the scout role text in Codex only. Include their file/line pointers, patterns, related tests and relevant docs in the worker brief.
 
 Workers do not see the parent conversation. Each brief must stand alone:
 
@@ -33,7 +33,7 @@ Include these execution rules:
 - Record task-owned process handles, working directories, ports and browser tab IDs as they are created. Stop temporary processes and close task-owned temporary tabs when done; report anything intentionally persistent. Never stop another task's processes or user-owned tabs.
 - Report changed files, checks and results, decisions, failures, caveats, cleanup and partial work. Keep every finding, number and path; cut repetition and narration. Save long output under `~/.cache/agent-scratch/<project>/` and report its path.
 
-Use structured Agent arguments for briefs. If a brief must be a file, write it with a file-writing tool before a separate launcher call. Never interpolate prose into shell code; backticks and command substitutions execute commands.
+Use structured Agent arguments for Claude briefs. Codex briefs must be files under `~/.cache/agent-scratch/<project>/`, written with a file-writing tool before a separate launcher call and passed on stdin. Never interpolate prose into shell code; backticks and command substitutions execute commands.
 
 ## Supervision by evidence
 
@@ -46,7 +46,7 @@ Use bounded diagnostic reads and completion notifications rather than a polling 
 
 ## Follow-ups
 
-Send corrections, additions and review findings with SendMessage to the worker that wrote the code. Give only the follow-up and needed context. Start fresh for a different task or area. Reviewers and advisors always start fresh; never resume them.
+Send corrections, additions and review findings to the worker that wrote the code: SendMessage for Claude, or a new stdin brief with `codex exec resume <session-id>` for Codex. Keep its workspace, model, effort and sandbox. Give only the follow-up and needed context. Start fresh for a different task or area. Reviewers and advisors always start fresh; never resume them.
 
 ## Parallel work
 
@@ -65,10 +65,10 @@ Size the process to the change. A tweak changes an existing screen or flow witho
 
 Everything else gets the full process:
 
-1. Have `designer` design the screens, states and interaction rules before building. Get the user's approval. Workers build the approved design; do not invent interaction rules in briefs.
+1. Have the designer design screens, states and interaction rules before building: `designer` (`claude-opus-5-5`, xhigh) in Codex + Claude and Claude only; `gpt-6.2-astra` at xhigh with the designer role text in Codex only. Get the user's approval. Workers build the approved design; do not invent interaction rules in briefs.
 2. Split by feature, not layer. Give one worker a whole flow through server, client logic, UI wiring and tests so one owner sees the seams.
 3. For several features or roughly over 1,500 changed lines, propose shipping in small slices before starting.
-4. Before handoff, run the app with realistic data, roles and permissions. Follow project instructions; disclose anything you could not reproduce. Have a worker walk the user's actual browser flow at the sizes users need, with screenshots. Have `designer` review the running flow. Fix findings and give the user the walked checklist and screenshots.
+4. Before handoff, run the app with realistic data, roles and permissions. Follow project instructions; disclose anything you could not reproduce. Have a worker walk the user's actual browser flow at the sizes users need, with screenshots; use the Chrome route above for the user's real Chrome. Have the setup's designer review the running flow, read-only in product-review mode. Fix findings and give the user the walked checklist and screenshots.
 5. If account or server state is hard to reach, add or reuse a dev-only way to force it and document it in the project's instructions.
 
 Stubbed tests, mock-data previews and code review do not replace the live check. `review-fix-loop` reviews the diff, not the experience.
