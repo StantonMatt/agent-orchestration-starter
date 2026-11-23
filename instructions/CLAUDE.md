@@ -153,9 +153,29 @@ rewrite it safely where possible; do not bypass a permission requirement.
 
 ## Website sign-ins
 
-Ask the user to sign in when needed. Passwords and codes must never enter chat,
-briefs, files, commits or memory. Creating accounts, changing passwords or account
-settings, purchases, messages and posts require the user's approval in chat.
+Chrome workers follow delegate-work's Chrome reference and use the dedicated
+`Agent Use` profile. Use the user's own profile only when the task names a tab
+there or needs their open tabs. Keep a window of the selected profile open so
+its extension can connect; never close or restart a running Chrome to connect it.
+
+If the user explicitly connects a password manager or email tool for agent
+sign-ins, use it for signing in only, within their approval and the tool's rules.
+The browser worker retrieves credentials and enters them straight into the form;
+passwords and codes must never enter chat, reports, briefs, files, commits or
+memory. Otherwise ask the user to sign in. Stop on a tool refusal or failure,
+missing login, or ambiguous account; never guess or retry a refusal.
+
+Complete simple human checks: a checkbox, "Verify you are human", "Continue" or
+press-and-hold. Never use a CAPTCHA-solving service. Ask the user for image,
+audio or puzzle challenges. When two-factor defaults to a passkey, push or SMS,
+check "Try another way" and prefer a method the agent can complete with a tool
+the user has authorized; otherwise ask the user.
+
+For "Sign in with <provider>" accounts, use only the provider the user's saved
+login names, and only the named account. Never guess a provider: it can create
+an account. Stop at an OAuth consent or "Authorize app" page for user approval.
+Creating accounts, changing passwords or account settings, purchases, messages
+and posts still require the user's approval in chat.
 
 ## Git worktrees
 

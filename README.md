@@ -11,7 +11,7 @@ Read it and adapt it rather than installing it blind.
 |---|---|---|---|
 | Orchestrator (main session) | Claude Code (any model) | Claude Code | Codex CLI |
 | Workers (implementation, refactors, tests, debugging, scripts, docs, browser, 3D) | `gpt-6.1-sol` at high, run as `codex exec` | `worker` agent, `claude-opus-5-5` at high | `gpt-6.1-sol` at high, `codex exec` |
-| Browser work in the user's real Chrome | `gpt-6.1-terra` at medium with Codex's Chrome plugin | `worker` agent with Claude in Chrome | `gpt-6.1-terra` at medium with Codex's Chrome plugin |
+| Chrome work (Agent Use profile by default) | `gpt-6.1-terra` at medium with Codex's Chrome plugin | `worker` agent with Claude in Chrome | `gpt-6.1-terra` at medium with Codex's Chrome plugin |
 | Scouts (read-only research) | `scout` agent, `claude-haiku-5-5` at xhigh | same | `gpt-6.1-terra` at high, read-only `codex exec`, with the `scout` role text |
 | Designer | `designer` agent, `claude-opus-5-5` at xhigh | same | `gpt-6.2-astra` at xhigh, `codex exec`, with the `designer` role text |
 | Advisors (4 / 2 / 3, all xhigh, all started at once) | `advisor` (`claude-fable-5-2`), `advisor` with `model: opus`, `gpt-6-astra`, `gpt-6.2-astra` | Fable and Opus `advisor` agents | `gpt-6-astra`, `gpt-6.2-astra`, `gpt-6.2-sol` |
@@ -42,6 +42,13 @@ The main session supervises and owns the result.
 - [instructions/CLAUDE.md](instructions/CLAUDE.md): global orchestration and working rules.
 - [agents/](agents/): the five role definitions and their model defaults.
 - [skills/delegate-work/](skills/delegate-work/SKILL.md): briefs, parallel work, verification and Codex children.
+- [Chrome reference](skills/delegate-work/references/chrome.md): startup, profiles, redaction and tab ownership.
+- [open_agent_chrome.py](skills/delegate-work/scripts/open_agent_chrome.py): open a named Chrome profile on Linux or macOS.
+- [agent-chrome.mjs](skills/delegate-work/scripts/agent-chrome.mjs): one-call Codex Chrome startup.
+- [chrome-output.mjs](skills/delegate-work/scripts/chrome-output.mjs): redact browser text and data at the output boundary. Best-effort tidying of what agents print, not a security boundary: unusual formats can slip through.
+- [test_open_agent_chrome.py](skills/delegate-work/tests/test_open_agent_chrome.py): isolated profile-launcher checks.
+- [agent-chrome.test.mjs](skills/delegate-work/tests/agent-chrome.test.mjs): startup, profile selection and grouping checks.
+- [chrome-output.test.mjs](skills/delegate-work/tests/chrome-output.test.mjs): redaction and runtime-wrapper checks.
 - [skills/review-fix-loop/](skills/review-fix-loop/SKILL.md): bounded review loop, reviewer routes and tree fingerprints.
 - [skills/full-send/](skills/full-send/SKILL.md): carry authorized work through publication and checks.
 - [skills/full-stop/](skills/full-stop/SKILL.md): prepare and verify a pull request, then leave it open and unmerged.
@@ -73,6 +80,11 @@ Symlinked parent directories are refused. Correct links print `ok` on rerun.
 It checks all selected sources before writing and does not edit `settings.json`.
 Read any existing global instructions and merge rules you need before replacing them.
 
+Whole skill directories are linked, including their references, scripts and
+tests. Chrome helpers land in `~/.claude/skills/delegate-work/scripts/`, and
+also in `~/.agents/skills/delegate-work/scripts/` with `--codex`; no separate
+script installation is needed.
+
 Flags may be combined:
 
 - `--dry-run`: show planned changes without writing anything.
@@ -87,6 +99,55 @@ python3 -m unittest discover -s tests
 ```
 
 Tests use a fixture repo and a throwaway home directory, not your configuration.
+
+## Chrome setup
+
+For Chrome work, create a profile named `Agent Use` with only the agent extensions:
+Codex/ChatGPT, Claude in Chrome, or both for your setup. Install and sign in to
+those extensions in that profile. Keep a window open so they can connect; never
+close or restart a running Chrome to connect them. Use your personal profile
+only for tasks that name a tab there or need your open tabs.
+
+Open that profile manually, or run the installed opener:
+
+```sh
+python3 ~/.agents/skills/delegate-work/scripts/open_agent_chrome.py
+```
+
+For Claude only, use `~/.claude/skills/delegate-work/scripts/open_agent_chrome.py`
+instead. `--name 'Custom profile'` selects another configured profile name.
+The Codex startup helper opens the requested profile automatically when it
+is disconnected; if its runtime cannot spawn processes, run the opener in the shell.
+See the [Chrome quick start](skills/delegate-work/references/chrome.md), including
+custom profile names and the default Codex plugin path. The Codex helper needs
+Node.js and the Chrome plugin's `node_repl` tool; Claude only uses Claude in Chrome.
+Set up the browser extensions and Codex plugin separately; the installer links
+the helpers, not those integrations.
+
+Run the Chrome helper checks with:
+
+```sh
+python3 -m unittest discover -s skills/delegate-work/tests
+node --test skills/delegate-work/tests/*.test.mjs
+```
+
+## Website sign-ins
+
+Credential tools are optional and are not bundled. Explicitly connect a password
+manager or email tool for agent sign-ins if you want the browser worker to sign in itself;
+it may use them for signing in only, within your approval and the tool's rules.
+Otherwise it asks you to sign in. Passwords and codes go straight into forms,
+never chat, reports, briefs, files, commits or memory. Ambiguous accounts and
+tool refusals or failures stop the sign-in.
+
+Agents complete simple human checks, such as a checkbox or press-and-hold, and
+never use CAPTCHA-solving services. Image, audio or puzzle challenges need you.
+For two-factor prompts, they check alternative methods and use only one you
+have authorized and equipped them to complete. For provider sign-ins, they use
+only the provider and account named by your saved login, and stop at OAuth
+consent. Creating accounts, changing passwords or account settings, purchases,
+messages and posts still need your approval in chat. See the full
+[Website sign-ins rules](instructions/CLAUDE.md#website-sign-ins).
 
 ## Adapt it
 
