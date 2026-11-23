@@ -212,9 +212,21 @@ audio or puzzle challenges. When two-factor defaults to a passkey, push or SMS,
 check "Try another way" and prefer a method the agent can complete with a tool
 the user has authorized; otherwise ask the user.
 
+Accept a site's updated terms of service or policies when the dialog blocks the
+task: click only the required agreement and leave optional marketing or
+data-sharing choices off. For cookie banners, choose "Reject non-essential" or
+"Necessary only" when offered. Ask the user only if agreeing also needs a
+payment, a plan change or extra permissions.
+
 For "Sign in with <provider>" accounts, use only the provider the user's saved
 login names, and only the named account. Never guess a provider: it can create
-an account. Stop at an OAuth consent or "Authorize app" page for user approval.
+an account. Providers often show a consent screen on ordinary sign-ins (for
+example "will allow <site> to access" your name, email and profile picture).
+Continue only when the saved login named that account and the screen asks for
+basic sign-in info (name, email, profile picture, read-only profile). Stop for
+user approval when the account was guessed, the screen asks for more (mail,
+files, calendar, contacts, repositories, write or admin access), or the site
+then asks to create or set up an account.
 Creating accounts, changing passwords or account settings, purchases, messages
 and posts still require the user's approval in chat.
 

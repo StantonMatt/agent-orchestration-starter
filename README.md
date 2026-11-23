@@ -247,8 +247,10 @@ Agents complete simple human checks, such as a checkbox or press-and-hold, and
 never use CAPTCHA-solving services. Image, audio or puzzle challenges need you.
 For two-factor prompts, they check alternative methods and use only one you
 have authorized and equipped them to complete. For provider sign-ins, they use
-only the provider and account named by your saved login, and stop at OAuth
-consent. Creating accounts, changing passwords or account settings, purchases,
+only the provider and account named by your saved login; they continue through
+a consent screen that asks only for basic sign-in info and stop for anything
+more. They accept updated terms-of-service dialogs (required agreement only,
+optional choices off) and reject non-essential cookies. Creating accounts, changing passwords or account settings, purchases,
 messages and posts still need your approval in chat. See the full
 [Website sign-ins rules](instructions/CLAUDE.md#website-sign-ins).
 
