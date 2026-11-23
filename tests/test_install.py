@@ -1,5 +1,6 @@
 """Installer tests use a fixture repository and a throwaway HOME with spaces."""
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ class InstallTest(unittest.TestCase):
         self.repo = self.base / 'fixture repo'
         self.repo.mkdir()
         shutil.copy2(ROOT / 'install.sh', self.repo / 'install.sh')
+        shutil.copytree(ROOT / 'hooks', self.repo / 'hooks', ignore=shutil.ignore_patterns('__pycache__'))
         self.write_repo('instructions/CLAUDE.md', 'fixture instructions\n')
         for agent in AGENTS:
             self.write_repo(f'agents/{agent}.md', f'{agent}\n')
@@ -210,6 +212,74 @@ class InstallTest(unittest.TestCase):
     def test_unknown_option_changes_nothing(self):
         result = self.install('--unknown', ok=False)
         self.assertEqual(result.returncode, 2)
+        self.assertEqual(list(self.home.iterdir()), [])
+
+    def test_t3_installs_instructions_and_merges_hooks(self):
+        settings = self.home / '.claude/settings.json'
+        settings.parent.mkdir()
+        existing = {'env': {'KEEP': 'yes'}, 'hooks': {'Stop': [{'hooks': [
+            {'type': 'command', 'command': 'custom-hook'}]}]}}
+        settings.write_text(json.dumps(existing))
+        self.install('--t3')
+        self.assert_link('.t3/codex-home/AGENTS.md', 'instructions/CLAUDE.md')
+        self.assert_link('.agents/skills/delegate-work', 'skills/delegate-work')
+        for hook in ('background_job_guard.py', 'orchestration_mode.py', 'signin_handoff_check.py'):
+            self.assert_link(f'.claude/hooks/{hook}', f'hooks/{hook}')
+        data = json.loads(settings.read_text())
+        self.assertEqual(data['env'], existing['env'])
+        self.assertEqual(data['hooks']['Stop'][0], existing['hooks']['Stop'][0])
+        self.assertEqual(len(data['hooks']['Stop']), 2)
+        self.assertIn("'", data['hooks']['Stop'][1]['hooks'][0]['command'])
+        for relative in ('.codex/hooks.json', '.t3/codex-home/hooks.json'):
+            self.assertEqual(len(json.loads((self.home / relative).read_text())['hooks']['Stop']), 1)
+        backup = list(settings.parent.glob('settings.json.bak-*'))
+        self.assertEqual(len(backup), 1)
+        self.assertEqual(json.loads(backup[0].read_text()), existing)
+        before = settings.read_bytes()
+        self.install('--t3')
+        self.assertEqual(settings.read_bytes(), before)
+        self.assertEqual(list(settings.parent.glob('settings.json.bak-*')), backup)
+
+    def test_hooks_are_opt_in(self):
+        self.install('--with-hooks')
+        self.assertTrue((self.home / '.claude/settings.json').exists())
+        self.assertFalse((self.home / '.codex').exists())
+        self.assertFalse((self.home / '.t3').exists())
+
+    def test_t3_dry_run_writes_nothing(self):
+        result = self.install('--t3', '--dry-run')
+        self.assertIn('would merge hooks', result.stdout)
+        self.assertEqual(list(self.home.iterdir()), [])
+
+    def test_invalid_config_aborts_before_any_links(self):
+        settings = self.home / '.claude/settings.json'
+        settings.parent.mkdir()
+        for text in ('{broken', '[]', '{"hooks": []}', '{"hooks": {"Stop": {}}}'):
+            settings.write_text(text)
+            self.install('--t3', ok=False)
+            self.assertEqual(settings.read_text(), text)
+            self.assertEqual(list(self.home.rglob('*')), [settings.parent, settings])
+
+    def test_config_symlinks_and_parent_symlinks_are_refused(self):
+        external = self.base / 'external'
+        external.mkdir()
+        saved = external / 'saved.json'
+        saved.write_text('{}')
+        settings = self.home / '.claude/settings.json'
+        settings.parent.mkdir()
+        settings.symlink_to(saved)
+        self.install('--t3', ok=False)
+        self.assertEqual(saved.read_text(), '{}')
+        self.assertFalse((self.home / '.agents').exists())
+        settings.unlink()
+        (self.home / '.t3').symlink_to(external)
+        self.install('--t3', ok=False)
+        self.assertEqual(list(external.iterdir()), [saved])
+        self.assertFalse((self.home / '.agents').exists())
+
+    def test_hook_source_preflight(self):
+        (self.repo / 'hooks/codex-hooks.json').unlink()
+        self.install('--t3', ok=False)
         self.assertEqual(list(self.home.iterdir()), [])
 
 

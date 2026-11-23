@@ -4,6 +4,10 @@ Read when advisory triage or disjoint fixes would save time. Follow [delegate-wo
 
 Use parallel help only for at least two useful, non-overlapping scopes when expected savings exceed startup and integration costs. Separate data, permissions and tests can qualify. Keep small single-scope changes and shared-schema work serial. Explain briefly if a requested split is unsafe.
 
+In T3, advisory and fix children follow delegate-work's [T3 route](../../delegate-work/references/t3-code.md),
+with explicit read-only scope for advisors. CLI/Agent examples below are for
+standalone sessions. Every advisory recheck is a new task.
+
 ## Advisory triage
 
 Use this before authoritative round 1: required for a large change, optional for smaller sensitive or multi-area changes, unless the user asked for serial. It neither consumes nor extends the round budget.

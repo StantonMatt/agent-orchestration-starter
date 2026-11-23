@@ -1,5 +1,7 @@
 # Codex children
 
+Inside T3, use [T3 Code](t3-code.md) instead of these standalone CLI launches.
+
 Use this route in **Codex + Claude** and **Codex only**. Claude only uses Claude
 agents instead. Codex children always run through `codex exec`, from either
 orchestrator; do not use native Codex subagents. Install and authenticate Codex

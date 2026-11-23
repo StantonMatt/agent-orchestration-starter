@@ -7,6 +7,14 @@ description: Delegate implementation, refactors, tests, debugging, scripts, docs
 
 You are the orchestrator: plan, brief, supervise, verify and integrate. Workers do the assigned work. The main session owns the integrated change and review loop. Child agents do their brief themselves; native subagents cannot start subagents.
 
+## T3 runtime
+
+Inside T3 Code (injected runtime instructions or `T3_ACP_MCP_NODE`), first read
+[T3 Code](references/t3-code.md). Use its delegation, workspace, wait, browser
+and follow-up routes in place of the standalone launch recipes below. Keep
+this skill's brief, scope and verification rules. A missing tool is a blocker
+after supported discovery, not permission to duplicate work through a CLI.
+
 ## Start workers
 
 Read the active setup in the global instructions. In **Codex + Claude** and **Codex only**, use `gpt-6.1-sol` at high through the [Codex route](references/codex-workers.md). In **Claude only**, use the Agent tool with `subagent_type: "worker"` and `run_in_background: true`; the worker uses `claude-opus-5-5` at high. Retain handles and use completion notifications where available. For independent parts, put all launches in one response. Do useful independent work or yield while they run; do not poll in a loop or launch monitoring agents.
@@ -33,7 +41,7 @@ Include these execution rules:
 - Record task-owned process handles, working directories, ports and browser tab IDs as they are created. Stop temporary processes and close task-owned temporary tabs when done; report anything intentionally persistent. Never stop another task's processes or user-owned tabs.
 - Report changed files, checks and results, decisions, failures, caveats, cleanup and partial work. Keep every finding, number and path; cut repetition and narration. Save long output under `~/.cache/agent-scratch/<project>/` and report its path.
 
-Use structured Agent arguments for Claude briefs. Codex briefs must be files under `~/.cache/agent-scratch/<project>/`, written with a file-writing tool before a separate launcher call and passed on stdin. Never interpolate prose into shell code; backticks and command substitutions execute commands.
+Outside T3, use structured Agent arguments for Claude briefs. Codex CLI briefs must be files under `~/.cache/agent-scratch/<project>/`, written with a file-writing tool before a separate launcher call and passed on stdin. Never interpolate prose into shell code; backticks and command substitutions execute commands.
 
 ## Supervision by evidence
 
@@ -46,7 +54,9 @@ Use bounded diagnostic reads and completion notifications rather than a polling 
 
 ## Follow-ups
 
-Send corrections, additions and review findings to the worker that wrote the code: SendMessage for Claude, or a new stdin brief with `codex exec resume <session-id>` for Codex. Keep its workspace, model, effort and sandbox. Give only the follow-up and needed context. Start fresh for a different task or area. Reviewers and advisors always start fresh; never resume them.
+Outside T3, send corrections, additions and review findings to the worker that wrote the code: SendMessage for Claude, or a new stdin brief with `codex exec resume <session-id>` for Codex. Keep its workspace, model, effort and sandbox. Give only the follow-up and needed context. Start fresh for a different task or area. Reviewers and advisors always start fresh; never resume them. In T3, follow the
+reference and use a new `delegate_task` with the prior results and corrections;
+do not send a continuation to the backing child thread.
 
 ## Parallel work
 

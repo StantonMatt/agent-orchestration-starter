@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/signin_handoff_check.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

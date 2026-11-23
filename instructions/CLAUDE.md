@@ -5,22 +5,24 @@ Active setup: Codex + Claude
 The user chooses `Codex + Claude` (default), `Claude only` or `Codex only` here.
 The repo README has the full role table. These instructions
 also install as `~/.codex/AGENTS.md`; Claude role definitions live in
-`~/.claude/agents/`. Codex children use `codex exec`, never native Codex subagents.
+`~/.claude/agents/`. Outside T3, Codex children use `codex exec`, never native Codex subagents.
+In T3, the main thread may use either provider; follow the T3 Code section below.
 
-- **Codex + Claude:** Claude Code orchestrates. Workers use `gpt-6.1-sol` at high;
+- **Codex + Claude:** Claude Code orchestrates outside T3; either provider can
+  orchestrate in T3. Workers use `gpt-6.1-sol` at high;
   real Chrome uses `gpt-6.1-terra` at medium with Codex's Chrome plugin. Scouts
   use `claude-haiku-5-5` at xhigh; the designer uses `claude-opus-5-5` at xhigh.
 - **Claude only:** Claude Code orchestrates. Use `worker` (`claude-opus-5-5`, high),
   including Claude in Chrome; scouts and the designer keep the defaults above.
-- **Codex only:** only for a Codex CLI main session, when the user selects it
-  (for example, Claude is out of quota). Every role is a `codex exec` child:
+- **Codex only:** only for a Codex main session, when the user selects it
+  (for example, Claude is out of quota). Outside T3, every role is a `codex exec` child:
   workers and Chrome keep the Codex + Claude defaults, scouts use `gpt-6.1-terra`
   at high read-only with the scout role text, and the designer uses `gpt-6.2-astra`
   at xhigh with the designer role text. Start no Claude children. A Claude main
   session that sees `Codex only` follows Codex + Claude instead.
 
-In Codex + Claude, if a Codex worker, advisor or review cannot run because of a
-launch, sign-in, plan or quota error, switch to Claude only for the rest of the
+For a Claude orchestrator in Codex + Claude, if a Codex worker, advisor or review
+cannot run because of a launch, sign-in, plan or quota error, switch to Claude only for the rest of the
 session. Tell the user and quote the error. HTTP 429 / "Rate limit exceeded" and
 capacity or overload errors need a wait of a few minutes and one retry first;
 switch only if that retry fails. A Codex orchestrator never switches to Claude
@@ -28,6 +30,36 @@ only: stop the affected work and report the blocker if a Codex child is unavaila
 A Fable-only quota failure does not switch setups; continue with the other
 advisors and disclose it. Inspect partial work before reassigning and never
 duplicate active or uncertain work. Never switch reviewers to evade findings.
+
+In T3, a Codex orchestrator switches to Codex only after an Opus/Haiku quota
+failure, telling the user. Keep that mode until a new session or user change;
+a Fable-only failure does not trigger it. The optional session-start hook only
+reports the configured setup and does not probe live account availability.
+
+## T3 Code
+
+Detect T3 from injected runtime instructions or `T3_ACP_MCP_NODE`, not a repo
+name or an installed app. Read delegate-work's `references/t3-code.md` before
+first delegation. Its routes override CLI/Agent launch and follow-up examples
+below inside T3. Missing T3 tools require discovery and blocker handling;
+they do not authorize silently falling back to standalone workers.
+
+The main thread is the orchestrator, whichever model the user selected. Assigned
+children do their brief themselves. Use `delegate_task` for T3-owned children;
+a Codex orchestrator uses it for every delegated role. Choose provider instances,
+models and options from `orchestrator_capabilities`. Use T3 worktree isolation
+for independent separate checkouts, without shell checkout setup. Keep all
+three setups' model and review defaults. Authoritative Codex reviews retain
+the existing CLI review route, even in T3; advisory tasks cannot approve it.
+
+Use completion notifications and returned continuations for delegated/background
+work. Link PRs on creation, takeover or push; watch pending checks/reviews with
+`watch_pull_request`, and unwatch before final handback. Follow the PR skills'
+T3 rules. Use collaborative previews for requested browser work and the Chrome
+worker for real Chrome. Track and clean up only task-owned resources. New
+top-level threads require an explicit user request; ordinary delegation remains
+child work. Read named threads before reporting on them and use their returned
+links. Use `t3_thread_organize` when asked to settle a thread.
 
 ## Orchestration
 
@@ -70,6 +102,10 @@ Before briefing workers, use scouts to gather file and line pointers, patterns,
 related tests and relevant docs. Afterward, scouts may compare a narrow diff
 against the brief or summarize selected output. Keep their inputs small.
 
+End a reply that finishes work or leaves a decision with the user with a short
+"Next" list: one to three useful bullets, most useful first. Skip it for quick
+back-and-forth answers; never pad it or list delegated tasks that ran.
+
 ## Second opinions
 
 Consult four / two / three read-only advisors in Codex + Claude / Claude only /
@@ -91,6 +127,9 @@ unavailable advisor; follow the setup-switch rules for Codex failures. Advice
 does not replace the review loop.
 
 ## Out-of-scope issues
+
+In T3, separate fixes remain delegated child tasks, including isolated
+worktrees. Do not create a new top-level thread without a user request.
 
 Fix confirmed unrelated bugs or security issues as separate tasks in their own
 worktrees and branches from the base branch. Give a worker the absolute path,
@@ -131,7 +170,9 @@ Skip this only when the user explicitly waives the loop for this task.
 
 Batch follow-up fixes into deliberate pushes. Keep unfinished pull requests as
 drafts. Do not push only to run a check that can run locally. Use `gh` for GitHub
-pull requests and checks; check the installed command's `--help` for flags.
+pull requests and checks outside T3; check the installed command's `--help` for flags.
+In T3, prefer the available `pull_request_*`, `ci_logs` and `ci_rerun` tools;
+follow delegate-work's T3 reference for linking and watching.
 
 When CI covers full suites, run focused checks locally, push reviewed changes,
 and merge only when CI is green. Fix CI failures, review the fix, then push again.

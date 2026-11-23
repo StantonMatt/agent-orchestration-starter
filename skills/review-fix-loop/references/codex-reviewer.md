@@ -7,6 +7,9 @@ version 0.171.0: `codex exec review --help`, `codex exec --help` and
 `codex review --help`. Recheck help for another version. Config keys are defined
 in the [matching CLI schema](https://github.com/openai/codex/blob/rust-v0.171.0/codex-rs/core/config.schema.json).
 
+In T3, also follow [T3 review runtime](t3-runtime.md); this CLI remains the
+authoritative Codex route.
+
 ## Prepare and capture
 
 1. Finish applicable checks and stop all writers. Keep review artifacts outside
@@ -69,10 +72,10 @@ and snapshot rules and the [main skill](../SKILL.md)'s budget and outcomes.
 Exit zero alone cannot approve. Missing output, incomplete coverage, a killed
 process, execution failure or changed/unreadable fingerprints invalidate the pass.
 
-In **Codex + Claude**, a launch, sign-in, plan or quota failure switches the
+For a Claude orchestrator in **Codex + Claude**, a launch, sign-in, plan or quota failure switches the
 session to **Claude only**. Quote the error and rerun the same round with a fresh
 native `reviewer`, the same scope/context and fresh fingerprints. A transient
 HTTP 429 / "Rate limit exceeded" or capacity/overload error requires waiting a few
-minutes and retrying once first; switch only if that also fails. **Codex only**
+minutes and retrying once first; switch only if that also fails. A Codex orchestrator
 reports the blocker instead. Findings, stale trees and other execution errors
 retain normal failure handling. Never switch reviewers to evade findings.

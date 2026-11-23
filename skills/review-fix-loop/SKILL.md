@@ -23,7 +23,16 @@ Use the active setup selected in the global instructions (`~/.claude/CLAUDE.md`,
 - **Codex + Claude** and **Codex only:** a fresh `gpt-6.1-sol` process at high through `codex exec review`. Follow [codex-reviewer](references/codex-reviewer.md).
 - **Claude only:** a new, never-resumed `reviewer` agent, `claude-opus-5-5` at xhigh, through the Agent tool. Follow [native-reviewer](references/native-reviewer.md).
 
-In Codex + Claude, a Codex launch, sign-in, plan or quota failure switches the session to Claude only. Rerun the same round with a fresh native `reviewer`, the same scope/context and fresh fingerprints. For a transient HTTP 429 / "Rate limit exceeded" or capacity/overload error, wait a few minutes and retry once; switch only if that also fails. Codex only reports the blocker instead. Findings, stale trees and other execution errors keep this loop's normal failure handling. Never substitute your own review or switch reviewers to evade findings. Missing agents or unavailable required settings are execution blockers.
+For a Claude orchestrator in Codex + Claude, a Codex launch, sign-in, plan or quota failure switches the session to Claude only. Rerun the same round with a fresh native `reviewer`, the same scope/context and fresh fingerprints. For a transient HTTP 429 / "Rate limit exceeded" or capacity/overload error, wait a few minutes and retry once; switch only if that also fails. A Codex orchestrator reports the blocker instead. Findings, stale trees and other execution errors keep this loop's normal failure handling. Never substitute your own review or switch reviewers to evade findings. Missing agents or unavailable required settings are execution blockers.
+
+## T3 runtime
+
+Read [T3 review runtime](references/t3-runtime.md). Authoritative Codex rounds
+keep the existing [CLI route](references/codex-reviewer.md); a `delegate_task`
+advisory review cannot approve the loop. Claude only keeps its fresh native
+reviewer and fingerprint route. A Codex orchestrator cannot switch to Claude
+only on failure. T3 advisory reviews and rechecks always get new tasks; never
+resume their backing threads. Keep scope, stable-tree, ledger and budget rules.
 
 ## Scope and preflight
 
@@ -79,6 +88,9 @@ After two evidence-based replies fail to settle an item, use the active setup:
 
 - **Codex + Claude** and **Codex only:** consult one fresh `gpt-6-astra` at xhigh once through read-only `codex exec`. Include the advisor preamble (the body of `agents/advisor.md`, without frontmatter); follow [delegate-work](../delegate-work/SKILL.md) for the launch route.
 - **Claude only:** consult two fresh read-only `advisor` agents in parallel: the default Fable 5.2 at xhigh and a second `advisor` with Agent `model: "opus"` (Opus 5.5 at xhigh). If one cannot run, disclose that and use the other.
+
+In T3, launch tiebreak advisors through delegate-work's T3 route; Claude only
+with a Claude main session retains native advisor agents.
 
 Give each the neutral round-1 brief, finding, both sides' arguments, evidence and relevant paths. Ask which side is right and what grade the item deserves. Weigh their evidence, not votes.
 

@@ -2,16 +2,20 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: %s [--codex] [--with-heavy] [--dry-run]\n' "$0"
+  printf 'Usage: %s [--codex] [--t3] [--with-hooks] [--with-heavy] [--dry-run]\n' "$0"
 }
 
 with_codex=false
 with_heavy=false
+with_hooks=false
+with_t3=false
 dry_run=false
 for argument in "$@"; do
   case "$argument" in
     --codex) with_codex=true ;;
     --with-heavy) with_heavy=true ;;
+    --with-hooks) with_hooks=true ;;
+    --t3) with_t3=true; with_codex=true; with_hooks=true ;;
     --dry-run) dry_run=true ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; printf 'Unknown option: %s\n' "$argument" >&2; exit 2 ;;
@@ -70,6 +74,16 @@ fi
 if $with_heavy; then
   add_mapping bin/heavy .local/bin/heavy
 fi
+if $with_t3; then
+  add_mapping instructions/CLAUDE.md .t3/codex-home/AGENTS.md
+fi
+if $with_hooks; then
+  for hook in background_job_guard.py orchestration_mode.py signin_handoff_check.py; do
+    add_mapping "hooks/$hook" ".claude/hooks/$hook"
+  done
+  # Configuration is merged, not symlinked over an existing settings file.
+  sources+=("$repo_dir/hooks/install_hooks.py" "$repo_dir/hooks/codex-hooks.json")
+fi
 
 # Validate every selected source and destination parent before changing HOME.
 for source_item in "${sources[@]}"; do
@@ -93,6 +107,14 @@ for destination in "${destinations[@]}"; do
     parent=$(dirname "$parent")
   done
 done
+
+# Validate all JSON and configuration parents before creating any links.
+hook_flags=(--home "$home_dir" --repo "$repo_dir")
+if $with_hooks; then
+  $with_codex && hook_flags+=(--codex)
+  $with_t3 && hook_flags+=(--t3)
+  python3 "$repo_dir/hooks/install_hooks.py" "${hook_flags[@]}" --validate
+fi
 
 # os.replace replaces a destination symlink itself, including directory links.
 move_item() {
@@ -144,6 +166,10 @@ link_item() {
   fi
 }
 
-for ((index = 0; index < ${#sources[@]}; index++)); do
+for ((index = 0; index < ${#destinations[@]}; index++)); do
   link_item "${destinations[$index]}" "${sources[$index]}"
 done
+if $with_hooks; then
+  $dry_run && hook_flags+=(--dry-run)
+  python3 "$repo_dir/hooks/install_hooks.py" "${hook_flags[@]}"
+fi

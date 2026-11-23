@@ -11,6 +11,23 @@ A clear "full stop" request authorizes that work without a separate "full send"
 request. If the user did not clearly ask, do not assume this autonomy.
 The overrides below replace full-send's merge permission and final steps.
 
+## T3 Code
+
+Inside T3, read [T3 Code](../delegate-work/references/t3-code.md). Its PR tools
+and waiting rules override the `gh` and background watcher examples below.
+Use available `pull_request_*` tools for PR operations and `ci_logs`/`ci_rerun`
+for checks. Immediately link each PR created, taken over or pushed to with
+`link_pull_request` (all stack layers with `link_pull_requests`); creation via
+`pull_request_create` already links it. Report linking failures.
+
+Only the orchestrator watches: after needed branch updates and pushes, call
+`watch_pull_request` for requested monitoring or pending checks/reviews, follow
+its continuation and end the turn. Do not poll, run `gh --watch`, or launch
+monitoring workers. Children report the PR URL, head and checks/reviews to the
+parent and never watch. Before final handback or asking for a decision, call
+`unwatch_pull_request` on watched PRs. Watching never grants merge permission.
+Keep the calling skill's proof, review and merge/no-merge gates.
+
 ## No merging
 
 You may commit, push, rebase, fix conflicts and use `--force-with-lease` on this

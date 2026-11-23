@@ -1,5 +1,8 @@
 # Native reviewer
 
+In T3, Claude only with a Claude main session keeps this native Agent route;
+see [T3 review runtime](t3-runtime.md) for wait and isolation limits.
+
 Use Claude Code's Agent tool with a fresh `reviewer` agent, Opus 5.5 at xhigh. Never use an implementing agent, resume a reviewer or continue it with SendMessage. The reviewer stays read-only and does not start agents. If the required agent or settings are unavailable, report execution blocked.
 
 ## Prepare and capture

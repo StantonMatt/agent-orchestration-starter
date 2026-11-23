@@ -14,6 +14,23 @@ ownership rules. This skill defines the flow, not who implements it.
 The request authorizes commits, pushes, merging after the gate passes,
 rebasing and `--force-with-lease` on this task's own branch, and the tests below.
 
+## T3 Code
+
+Inside T3, read [T3 Code](../delegate-work/references/t3-code.md). Its PR tools
+and waiting rules override the `gh` and background watcher examples below.
+Use available `pull_request_*` tools for PR operations and `ci_logs`/`ci_rerun`
+for checks. Immediately link each PR created, taken over or pushed to with
+`link_pull_request` (all stack layers with `link_pull_requests`); creation via
+`pull_request_create` already links it. Report linking failures.
+
+Only the orchestrator watches: after needed branch updates and pushes, call
+`watch_pull_request` for requested monitoring or pending checks/reviews, follow
+its continuation and end the turn. Do not poll, run `gh --watch`, or launch
+monitoring workers. Children report the PR URL, head and checks/reviews to the
+parent and never watch. Before final handback or asking for a decision, call
+`unwatch_pull_request` on watched PRs. Watching never grants merge permission.
+Keep the calling skill's proof, review and merge/no-merge gates.
+
 ## Testing permission
 
 A "full send" request authorizes the test methods Proof needs without asking
@@ -69,8 +86,8 @@ data, unrelated external actions, or bypassing system approval prompts.
    Preserve uncommitted work. Report the PR, merge commit, proof, review outcome
    and decisions made for the user, plus persistent task resources or limits.
 
-Keep ownership until merge or a real blocker. Follow babysit-pr's background
-checks command and resume on completion. If a merge queue still needs checks,
+Keep ownership until merge or a real blocker. Follow babysit-pr's runtime-specific
+watch route and resume on completion. If a merge queue still needs checks,
 watch those checks; if an external queue decision alone remains, report it
 without claiming a merge. Delegated children return status to the orchestrator.
 
