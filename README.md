@@ -141,6 +141,8 @@ to `~/.claude/hooks/`. It merges registrations into `~/.claude/settings.json`,
 `~/.codex/hooks.json` and `~/.t3/codex-home/hooks.json`. If your T3 provider
 uses a custom Codex home, merge the same instructions and hook template into
 that home too; discover the provider's actual configuration rather than guessing.
+T3's Codex home also needs your Codex config and plugins before `@Chrome` works;
+see step 3 of [Chrome setup](#chrome-setup).
 Restart sessions to load the installed instructions and hooks. The installer
 does not install T3, subscriptions, browser integrations or credentials.
 
@@ -184,7 +186,8 @@ watching. Full-stop still never merges, and full-send keeps its merge gate.
 
 For requested browser work, collaborative `preview_*` tools handle local apps
 and public pages; they do not inherit your Chrome logins. Real Chrome and
-existing tabs use the role table's Chrome worker and the Chrome reference.
+existing tabs use the role table's Chrome worker and the Chrome reference,
+after the one-time [Chrome setup](#chrome-setup), including the Agent Use profile.
 Requested inline visuals use `html_preview` then `html_render`. Multi-host
 placement is optional: the bundled telemetry helper has an empty host list,
 configurable role limits and no account or machine provisioning. Keep private
@@ -205,13 +208,98 @@ python3 -m unittest discover -s hooks/tests
 
 ## Chrome setup
 
-For Chrome work, create a profile named `Agent Use` with only the agent extensions:
-Codex/ChatGPT, Claude in Chrome, or both for your setup. Install and sign in to
-those extensions in that profile. Keep a window open so they can connect; never
-close or restart a running Chrome to connect them. Use your personal profile
-only for tasks that name a tab there or need your open tabs.
+The installer links the Chrome helpers but not the browser integrations. Do
+these steps once yourself. Agents never close or restart Chrome, so the restarts
+below are yours.
 
-Open that profile manually, or run the installed opener:
+### 1. Create the Agent Use profile
+
+Create a Chrome profile named `Agent Use` with only the agent extensions:
+Codex/ChatGPT, Claude in Chrome, or both for your setup. Install and sign in to
+those extensions in that profile, then restart Chrome. Keep an Agent Use window
+open so agents can connect. Agents use your personal profile only for tasks that
+name a tab there or need your open tabs.
+
+### 2. Connect Claude in Chrome (Claude only or Codex + Claude)
+
+Run `claude` in a terminal, type `/chrome` and enable it, then restart Chrome.
+This registers the connector Claude Code uses to reach the extension.
+
+### 3. Give T3's Codex the Chrome plugin (T3 only)
+
+T3 runs Codex with its own home folder, so `@Chrome` and `node_repl` are missing
+there until that folder has the Chrome plugin. Install and enable the Chrome
+plugin in the Codex or ChatGPT app first, so `~/.codex` has it.
+
+**Find T3's Codex home.** The folder name varies between installs, so read it
+from T3's settings rather than assuming one:
+
+```sh
+grep -oE '"homePath": ?"[^"]+"' ~/.t3/userdata/settings.json
+```
+
+With `jq` installed, `jq -r '.. | .homePath? // empty' ~/.t3/userdata/settings.json`
+prints just the path. Set it for the commands below:
+
+```sh
+T3_CODEX_HOME="/path/from/homePath"
+```
+
+**Recommended: give T3 its own small config.** `~/.codex/config.toml` belongs to
+the Codex or ChatGPT app, with its own default model, desktop settings and
+plugins, and it may hold API keys: don't print it whole, copy it or share it.
+Instead, list only the section headers you need:
+
+```sh
+grep -nE '^\[(marketplaces\.openai-bundled|plugins\."chrome@|mcp_servers\.node_repl)' ~/.codex/config.toml
+```
+
+Copy those sections, each with the lines under it up to the next header, into
+`$T3_CODEX_HOME/config.toml`, creating it if needed. If T3's file already has
+one of those headers, add only the missing lines under the existing header;
+a header may appear only once in the file. They are usually:
+
+- `[marketplaces.openai-bundled]`: where the bundled plugins come from.
+- `[plugins."chrome@openai-bundled"]`: turns the Chrome plugin on.
+- `[mcp_servers.node_repl]`: the `node_repl` tool `@Chrome` runs in, with its `command` path.
+
+Then link the plugin folder, so T3 uses the same installed plugin (its `latest`
+folder follows app updates). This adds missing links only and never replaces
+anything:
+
+```sh
+mkdir -p "$T3_CODEX_HOME"
+for name in plugins rules; do
+  if [ -e "$T3_CODEX_HOME/$name" ] || [ -L "$T3_CODEX_HOME/$name" ]; then
+    echo "exists, check by hand: $T3_CODEX_HOME/$name"
+  elif [ -e "$HOME/.codex/$name" ]; then
+    ln -s "$HOME/.codex/$name" "$T3_CODEX_HOME/$name" && echo "linked $name"
+  fi
+done
+```
+
+If a new T3 Codex thread can't find the `delegate-work` skill, link it in too:
+
+```sh
+mkdir -p "$T3_CODEX_HOME/skills"
+[ -e "$T3_CODEX_HOME/skills/delegate-work" ] || ln -s "$HOME/.agents/skills/delegate-work" "$T3_CODEX_HOME/skills/delegate-work"
+```
+
+**Alternative: share one config.** If you'd rather T3 use exactly your Codex
+setup, link `config.toml`, `plugins`, `skills`, `rules`, `AGENTS.md` and
+`hooks.json` from `~/.codex` into `$T3_CODEX_HOME` instead, again only where
+nothing exists yet. The trade-off: T3 then gets the app's default model,
+reasoning effort and every plugin, and both apps write to the same file.
+
+`./install.sh --t3` writes `AGENTS.md` and `hooks.json` only into
+`~/.t3/codex-home`. If your `homePath` is different, link or merge those two
+there as well. Open a new T3 thread afterwards; threads that are already open
+keep the old setup. Chrome's Codex connector works without the ChatGPT desktop
+app running.
+
+### Opening the profile
+
+Open the Agent Use profile manually, or run the installed opener:
 
 ```sh
 python3 ~/.agents/skills/delegate-work/scripts/open_agent_chrome.py
@@ -224,8 +312,6 @@ is disconnected; if its runtime cannot spawn processes, run the opener in the sh
 See the [Chrome quick start](skills/delegate-work/references/chrome.md), including
 custom profile names and the default Codex plugin path. The Codex helper needs
 Node.js and the Chrome plugin's `node_repl` tool; Claude only uses Claude in Chrome.
-Set up the browser extensions and Codex plugin separately; the installer links
-the helpers, not those integrations.
 
 Run the Chrome helper checks with:
 

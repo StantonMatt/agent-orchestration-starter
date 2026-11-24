@@ -72,7 +72,10 @@ or select the agent profile, rather than guessing. The opener supports Linux
 
 The default Codex plugin module is
 `~/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs`.
-Plugin layouts vary; check your installation if that path is absent. To supply
+Plugin layouts vary; check your installation if that path is absent. In T3,
+Codex uses its own home (`homePath` in T3's settings); when `node_repl` or
+`@Chrome` is missing there, report it and point to step 3 of the README's
+Chrome setup rather than editing that home yourself. To supply
 another path, import `createAgentChromeStarter` from the same helper and pass
 `{ loadRuntime: () => import('/path/to/browser-client.mjs') }` when creating it.
 Keep helper imports together; they resolve relative to their installed skill.
