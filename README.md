@@ -57,9 +57,6 @@ The main session supervises and owns the result.
 - [agent-chrome.test.mjs](skills/delegate-work/tests/agent-chrome.test.mjs): startup, profile selection and grouping checks.
 - [chrome-output.test.mjs](skills/delegate-work/tests/chrome-output.test.mjs): redaction and runtime-wrapper checks.
 - [skills/review-fix-loop/](skills/review-fix-loop/SKILL.md): bounded review loop, reviewer routes and tree fingerprints.
-- [skills/full-send/](skills/full-send/SKILL.md): carry authorized work through publication and checks.
-- [skills/full-stop/](skills/full-stop/SKILL.md): prepare and verify a pull request, then leave it open and unmerged.
-- [skills/babysit-pr/](skills/babysit-pr/SKILL.md): watch a pull request and handle actionable failures.
 - [bin/heavy](bin/heavy): optional gate for finite resource-intensive commands.
 - [background_job_guard.py](hooks/background_job_guard.py): Claude Bash detachment check.
 - [orchestration_mode.py](hooks/orchestration_mode.py): configured setup at session start.
@@ -69,7 +66,6 @@ The main session supervises and owns the result.
 - Hook regressions: [background jobs](hooks/tests/test_background_job_guard.py), [setup selection](hooks/tests/test_orchestration_mode.py), [sign-in handoffs](hooks/tests/test_signin_handoff_check.py).
 - [install.sh](install.sh): symlink installer; [tests/](tests/test_install.py): isolated installer checks.
 - [LICENSE](LICENSE): MIT license for this repo.
-- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): attribution and upstream license text.
 - [.gitignore](.gitignore): local generated files.
 
 ## Install
@@ -182,7 +178,7 @@ for checks. Link created, taken-over or pushed PRs with `link_pull_request`
 (`pull_request_create` links automatically). The orchestrator uses
 `watch_pull_request` while authorized work waits on checks or reviews, then
 `unwatch_pull_request` before final handback. Children report status without
-watching. Full-stop still never merges, and full-send keeps its merge gate.
+watching. Watching never authorizes merging.
 
 For requested browser work, collaborative `preview_*` tools handle local apps
 and public pages; they do not inherit your Chrome logins. Real Chrome and
@@ -368,12 +364,6 @@ every role is a `codex exec` child; no Claude children run. In T3 use the
 If installed, use `~/.local/bin/heavy <command> ...` for full suites, builds and
 whole-project type checks. Focused tests and development servers run directly.
 It is a command gate, not a sandbox; see [bin/heavy](bin/heavy) for its limits.
-
-## Credits
-
-`full-send`, `full-stop` and `babysit-pr` are adapted from
-[t3dotgg/tstack](https://github.com/t3dotgg/tstack), MIT.
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
